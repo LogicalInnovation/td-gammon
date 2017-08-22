@@ -1,4 +1,5 @@
 import os
+import sys
 import copy
 import time
 import random
@@ -315,17 +316,18 @@ class Game:
         return False
 
     def draw_col(self,i,col):
-        print "|",
+        p = "| "
         if i==-2:
             if col<10:
-                print "",
-            print str(col),
+                p += " "
+            p += str(col) + " "
         elif i==-1:
-            print "--",
+            p += "-- "
         elif len(self.grid[col])>i:
-            print " "+self.grid[col][i],
+            p += " " + self.grid[col][i] + " "
         else:
-            print "  ",
+            p += "   "
+        sys.stdout.write(p)
 
     def draw(self):
         os.system('clear')
@@ -333,19 +335,18 @@ class Game:
         for i in range(-2,largest):
             for col in range(len(self.grid)/2,len(self.grid)):
                 self.draw_col(i,col)
-            print "|"
-        print
-        print
+            print("|")
+        print("\n")
         largest = max([len(self.grid[i]) for i in range(len(self.grid)/2)])
         for i in range(largest-1,-3,-1):
             for col in range(len(self.grid)/2-1,-1,-1):
                 self.draw_col(i,col)
-            print "|"
+            print("|")
         for t in self.players:
-            print "<Player %s>  Off Board : "%(t),
+            sys.stdout.write("<Player %s>  Off Board :  "%(t))
             for piece in self.off_pieces[t]:
-                print t+'',
-            print "   Bar : ",
+                sys.stdout.write(t+' ')
+            sys.stdout.write("   Bar :  ")
             for piece in self.bar_pieces[t]:
-                print t+'',
-            print
+                sys.stdout.write(t+' ')
+            print('')
