@@ -1,5 +1,8 @@
 from ..game import Game
 
+try: input = raw_input
+except NameError: pass
+
 class HumanAgent(object):
     def __init__(self, player):
         self.player = player
@@ -12,7 +15,7 @@ class HumanAgent(object):
 
         while True:
             while True:
-                mv1 = raw_input('Please enter a move "<location start>,<location end>" ("%s" for on the board, "%s" for off the board): ' % (Game.ON, Game.OFF))
+                mv1 = input('Please enter a move "<location start>,<location end>" ("%s" for on the board, "%s" for off the board): ' % (Game.ON, Game.OFF))
                 mv1 = self.get_formatted_move(mv1)
                 if not mv1:
                     print('Bad format enter e.g. "3,4"')
@@ -20,7 +23,7 @@ class HumanAgent(object):
                     break
 
             while True:
-                mv2 = raw_input('Please enter a second move (enter to skip): ')
+                mv2 = input('Please enter a second move (enter to skip): ')
                 if mv2 == '':
                     mv2 = None
                     break
