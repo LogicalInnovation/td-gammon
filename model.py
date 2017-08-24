@@ -2,6 +2,7 @@ from __future__ import division
 
 import time
 import random
+import os
 import numpy as np
 import tensorflow as tf
 
@@ -176,13 +177,15 @@ class Model(object):
         game = Game.new()
         game.play([TDAgent(Game.TOKENS[0], self), HumanAgent(Game.TOKENS[1])], draw=True)
 
-    def test(self, episodes=100, draw=False):
-        players = [TDAgent(Game.TOKENS[0], self), RandomAgent(Game.TOKENS[1])]
+    def test(self, episodes=100, draw=False, save=None):
+        players = [TDAgent(Game.TOKENS[0], self), TDAgent(Game.TOKENS[1], self)]
         winners = [0, 0]
         for episode in range(episodes):
             game = Game.new()
 
             winner = game.play(players, draw=draw)
+            if save:
+                game.save_tmg(os.path.join(save, str(episode) + '.tmg'))
             winners[winner] += 1
 
             winners_total = sum(winners)

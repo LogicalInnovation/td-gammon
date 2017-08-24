@@ -7,6 +7,7 @@ flags = tf.app.flags
 FLAGS = flags.FLAGS
 
 flags.DEFINE_boolean('test', False, 'If true, test against a random strategy.')
+flags.DEFINE_string('save_test', '', 'If specified, the test will be saved in tmg files in the specified dir')
 flags.DEFINE_boolean('play', False, 'If true, play against a trained TD-Gammon strategy.')
 flags.DEFINE_boolean('restore', False, 'If true, restore a checkpoint before training.')
 
@@ -29,7 +30,10 @@ if __name__ == '__main__':
     with sess.as_default(), graph.as_default():
         model = Model(sess, model_path, summary_path, checkpoint_path, restore=FLAGS.restore)
         if FLAGS.test:
-            model.test(episodes=1000)
+            save = FLAGS.save_test
+            if save == '':
+                save = None
+            model.test(episodes=100, save=save)
         elif FLAGS.play:
             model.play()
         else:

@@ -2,8 +2,18 @@ import os
 import sys
 import copy
 import time
+import enum
 import random
 import numpy as np
+
+
+class Event(enum.Enum):
+    ROLL = 1
+    MOVE = 4
+    WIN_SINGLE = 14
+    WIN_GAMMON = 15
+    WIN_BACKGAMMON = 16
+
 
 class Game:
 
@@ -36,12 +46,80 @@ class Game:
             self.bar_pieces[t] = []
             self.off_pieces[t] = []
             self.num_pieces[t] = 0
+        self.events = []
 
     @staticmethod
     def new():
         game = Game()
         game.reset()
         return game
+
+    def add_event(self, player, event, *args):
+        assert isinstance(event, Event)
+        self.events.append((player, event, args))
+
+    def save_tmg(self, filename, player1=None, player2=None):
+        if not self.is_over():
+            raise ValueError('Match is not over. Only complete matches can be '
+                             'saved to tmg files')
+        if player1 is None:
+            player1 = 'randomguy1'
+        if player2 is None:
+            player2 = 'randomguy2'
+
+        with open(filename, 'w') as fout:
+            header = """MatchID: 0
+                        Player1: 10001 %s 4.00
+                        Player2: 10002 %s 4.00
+                        wonAmount: 7.8
+                        Stake: 2.00
+                        RakePct: 0.00
+                        MaxRakeAbs: 0.00
+                        RakeAbs: 0.00
+                        Startdate: 2010-04-05 14:03:36
+                        Jacoby: 0
+                        AutoDistrib: 0
+                        Automatics: 0
+                        Beavers: 0
+                        Raccons: 0
+                        Crawford: 1
+                        Cube: 1
+                        MaxCube: 512
+                        Length: 0
+                        MaxGames: 512
+                        Variant: 1
+                        PlayMoney: 0
+                        BuyInAndPrizeType: 1
+                        FeeType: 1
+                        Game 1: 0-0
+                        0 19 4.00 0.0 4.00 0.0 Settlement""" % (player1, player2)
+
+            for line in header.split('\n'):
+                fout.write(line.lstrip(' '))
+                fout.write('\n')
+
+            turn_nb = 1
+            last_p = self.events[1][0]
+            half_turn = False
+            for i in range(len(self.events)):
+                if self.events[i][0] != last_p:
+                    if half_turn == True:
+                        turn_nb += 1
+                    half_turn = not half_turn
+                    last_p = self.events[i][0]
+
+                turn = '  ' if self.events[i][0] == 0 else ' -'
+                ev_code = self.events[i][1].value
+                if ev_code == Event.WIN_SINGLE.value:
+                    points = 2
+                    player = player1 if self.events[i][0] == 0 else player2
+                    args = [points, player, 'wins', points, 'points']
+                else:
+                    args = self.events[i][2]
+                fout.write('%s%d %d' % (turn, turn_nb, ev_code))
+                for a in args:
+                    fout.write(' %s' % str(a))
+                fout.write('\n')
 
     def extract_features(self, player):
         features = []
@@ -68,15 +146,39 @@ class Game:
         while not self.is_over():
             self.next_step(players[player_num], player_num, draw=draw)
             player_num = (player_num + 1) % 2
+            self.reverse()
+        player_num = (player_num + 1) % 2
+        self.add_event(player_num, Event.WIN_SINGLE)
         return self.winner()
 
     def next_step(self, player, player_num, draw=False):
         roll = self.roll_dice()
+        self.add_event(player_num, Event.ROLL, roll[0] * 10 + roll[1])
 
         if draw:
             self.draw()
 
-        self.take_turn(player, roll, draw=draw)
+        move = self.take_turn(player, roll, draw=draw)
+        if move:
+            inv_pips = list(range(24)[::-1])
+            formatted_moves = []
+            for mv in move:
+
+                if mv[0] != Game.ON:
+                    mv = inv_pips[mv[0]], mv[1]
+                if mv[1] != Game.OFF:
+                    mv = mv[0], inv_pips[mv[1]]
+
+                if mv[0] == Game.ON:
+                    mv = 24, mv[1]
+                if mv[1] == Game.OFF:
+                    mv = mv[0], -1
+                mv = mv[0] + 1, mv[1] + 1
+                formatted_moves.append(str(mv[0]) + '/' + str(mv[1]))
+
+            self.add_event(player_num, Event.MOVE, *formatted_moves)
+        else:
+            self.add_event(player_num, Event.MOVE, '0/0')
 
     def take_turn(self, player, roll, draw=False):
         if draw:
@@ -88,6 +190,8 @@ class Game:
 
         if move:
             self.take_action(move, player.player)
+
+        return move
 
     def clone(self):
         """
@@ -251,6 +355,7 @@ class Game:
         for col in self.grid:
             for piece in col:
                 self.num_pieces[piece] += 1
+        self.event = []
 
     def winner(self):
         """
