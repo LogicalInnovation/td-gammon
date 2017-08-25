@@ -143,6 +143,9 @@ class Game:
 
     def play(self, players, draw=False):
         player_num = random.randint(0, 1)
+        if player_num == 0:
+            self.reverse()
+
         while not self.is_over():
             self.next_step(players[player_num], player_num, draw=draw)
             player_num = (player_num + 1) % 2

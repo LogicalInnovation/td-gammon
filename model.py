@@ -211,6 +211,8 @@ class Model(object):
 
             game = Game.new()
             player_num = random.randint(0, 1)
+            if player_num == 0:
+                game.reverse()
 
             x = game.extract_features(players[player_num].player)
 
@@ -223,7 +225,8 @@ class Model(object):
                 V_next = self.get_output(x_next)
                 self.sess.run(self.train_op, feed_dict={ self.x: x, self.V_next: V_next })
 
-                x = x_next
+                game.reverse()
+                x = game.extract_features(players[(player_num + 1) %2].player)
                 game_step += 1
 
             winner = game.winner()
